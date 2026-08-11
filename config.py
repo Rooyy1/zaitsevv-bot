@@ -29,7 +29,7 @@ ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split("
 BROADCAST_PASSWORD = os.getenv("BROADCAST_PASSWORD", "trainerssZaitsev")
 
 # Юзернейм, на который ведут все кнопки "ЗАПИСАТЬСЯ" (без @)
-DEFAULT_CONTACT_USERNAME = os.getenv("CONTACT_USERNAME", "slava_gold")
+DEFAULT_CONTACT_USERNAME = os.getenv("CONTACT_USERNAME", "zaitsev_trainer")
 
 DB_PATH = os.getenv("DB_PATH", "funnel_bot.db")
 
