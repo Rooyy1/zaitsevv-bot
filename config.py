@@ -44,11 +44,11 @@ DB_PATH = os.getenv("DB_PATH", "funnel_bot.db")
 # эти значения используются только один раз, при первом запуске (сидинг).
 # ──────────────────────────────────────────────────────────────
 DEFAULT_INTERVALS = {
-    "interval_leadmagnet": 2,
-    "interval_offer": 5,
-    "interval_dozhim1": 10,
-    "interval_dozhim2": 12,
-    "interval_dozhim3": 14,
+    "interval_leadmagnet": 6,
+    "interval_offer": 40,
+    "interval_dozhim1": 1 * 60 * 60,
+    "interval_dozhim2": 24 * 60 * 60,
+    "interval_dozhim3": 48 * 60 * 60,
 }
 
 # Человекочитаемые названия интервалов для меню /интервалы
