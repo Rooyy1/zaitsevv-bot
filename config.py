@@ -10,7 +10,16 @@ load_dotenv()
 
 # Прямое указание file_id (вставьте сюда свои ID)
 WELCOME_VIDEO_FILE_ID = "DQACAgUAAxkBAAMNamh8fMPyzOb7zYyDKTkeQ1QxgMAAAjAgAAKTzMhVtTjerlSTMb89BA"  # например: "AQADAgAD...="
-LEADMAGNET_FILE_ID = "BQACAgIAAxkBAAMTamh9AXy73yiwhENnBTcdnQwVei4AAiWlAAKepSBL4nhia9orjNw9BA"      # например: "BQACAgIAAxkB..."
+LEADMAGNET_FILE_ID = "BQACAgIAAxkBAAPTansumaVYZu9uE-JZHTH39cdyW9cAAriiAAJTJthL4AABkMgnkjWrPQQ"      # например: "BQACAgIAAxkB..."
+
+# Фото для сообщения "дожим 3" (последнее место)
+DOZHIM3_PHOTO_ID = "AgACAgIAAxkBAAPHanstaUSlZr7_IDt6Iy-D17RTd2gAAqEZaxtTJthLRpOUvtd9ohwBAAMCAAN5AAM9BA"
+
+# Фото-отзывы для сообщения "дожим 2" (альбом из 3 фото)
+DOZHIM2_PHOTO_1 = "AgACAgIAAxkBAAPOanstzNgyQ9iWa670TXf9GDzeBNUAAqMZaxtTJthLBIHvF3LuIFIBAAMCAAN5AAM9BA"
+DOZHIM2_PHOTO_2 = "AgACAgIAAxkBAAPQanst0oPROWUeqr8xYDah8m8PCWsAAqQZaxtTJthL5MEzbCZnUZYBAAMCAAN5AAM9BA"
+DOZHIM2_PHOTO_3 = "AgACAgIAAxkBAAPKanstjU3RvJaoEg_Czy6LBuEnD2EAAqIZaxtTJthLeYDNs3rLF6UBAAMCAAN5AAM9BA"
+
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
 # ID администраторов бота (через запятую в .env), например: ADMIN_IDS=123456789,987654321
@@ -36,15 +45,15 @@ DB_PATH = os.getenv("DB_PATH", "funnel_bot.db")
 # ──────────────────────────────────────────────────────────────
 DEFAULT_INTERVALS = {
     # кружок -> лид-магнит
-    "interval_leadmagnet": 6,          # 6 секунд после приветственного сообщения
+    "interval_leadmagnet": 2,          # 6 секунд после приветственного сообщения
     # лид-магнит -> оффер
-    "interval_offer": 40,          # 40 сек после лид-магнита
+    "interval_offer": 5,          # 40 сек после лид-магнита
     # оффер -> дожим 1
-    "interval_dozhim1": 1 * 60 * 60,   # 1 час после оффера
+    "interval_dozhim1":10 # 1 * 60 * 60,   # 1 час после оффера
     # оффер -> дожим 2 (отсчёт от оффера, НЕ от дожима 1)
-    "interval_dozhim2": 24 * 60 * 60,  # 24 часа (сутки) после оффера
+    "interval_dozhim2": 15 #24 * 60 * 60,  # 24 часа (сутки) после оффера
     # дожим 2 -> дожим 3
-    "interval_dozhim3": 48 * 60 * 60,  # 48 часов (2 суток) после дожима 2
+    "interval_dozhim3":20 #48 * 60 * 60,  # 48 часов (2 суток) после дожима 2
 }
 
 # Человекочитаемые названия интервалов для меню /интервалы

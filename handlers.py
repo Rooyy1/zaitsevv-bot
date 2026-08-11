@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 # ID фото для приветственного сообщения
-WELCOME_PHOTO_ID = "AgACAgIAAxkBAAOkanRi_iz9YKQ8thrSlQHHlrfzSg8AAsInaxvS85lLwNYBH_6SnZMBAAMCAAN5AAM9BA"
+WELCOME_PHOTO_ID = "AgACAgIAAxkBAAO-ansnW6x0iRPc0tXPRQk6vZPmeFEAAooZaxtTJthLmzTY7doa9p8BAAMCAAN5AAM9BA"
 
 
 @router.message(CommandStart())
