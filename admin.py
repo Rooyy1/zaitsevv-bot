@@ -4,26 +4,33 @@
 - /set_video — (ответом на кружок/видео-кружок) сохранить file_id приветственного кружка
 - /set_leadmagnet — (ответом на файл) сохранить file_id лид-магнита
 - /set_username — сменить юзернейм, на который ведут кнопки "ЗАПИСАТЬСЯ"
-- /stats — короткая статистика по воронке
+- /стата — расширенная статистика по пользователям
 """
 import logging
+from datetime import datetime
+import aiosqlite
 
 from aiogram import Router, F, Bot
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 import database as db
-from config import ADMIN_IDS, INTERVAL_LABELS
+import messages as msg
+from config import ADMIN_IDS, INTERVAL_LABELS, DB_PATH
 
 logger = logging.getLogger(__name__)
 router = Router()
+
+WELCOME_PHOTO_ID = "AgACAgIAAxkBAAO-ansnW6x0iRPc0tXPRQk6vZPmeFEAAooZaxtTJthLmzTY7doa9p8BAAMCAAN5AAM9BA"
 
 
 def _is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
 
+
+# ==================== ИНТЕРВАЛЫ ====================
 
 class IntervalEdit(StatesGroup):
     waiting_value = State()
@@ -126,6 +133,8 @@ async def process_interval_value(message: Message, state: FSMContext) -> None:
     )
 
 
+# ==================== НАСТРОЙКИ ====================
+
 @router.message(Command("set_video"))
 async def cmd_set_video(message: Message) -> None:
     if not _is_admin(message.from_user.id):
@@ -181,33 +190,105 @@ async def cmd_set_username(message: Message) -> None:
     await message.answer(f"✅ Кнопки «ЗАПИСАТЬСЯ» теперь ведут на @{username}")
 
 
+# ==================== СТАТИСТИКА ====================
+
+@router.message(Command("стата"))
 @router.message(Command("stats"))
 async def cmd_stats(message: Message) -> None:
     if not _is_admin(message.from_user.id):
         return
-    import aiosqlite
-    from config import DB_PATH
-
+    
     async with aiosqlite.connect(DB_PATH) as conn:
-        async with conn.execute(
-            "SELECT COUNT(*), "
-            "SUM(welcome_sent), SUM(leadmagnet_sent), SUM(offer_sent), "
-            "SUM(dozhim1_sent), SUM(dozhim2_sent), SUM(dozhim3_sent), "
-            "SUM(is_active) "
-            "FROM users"
-        ) as cur:
-            row = await cur.fetchone()
-
-    total, welcome, lead, offer, d1, d2, d3, active = [x or 0 for x in row]
+        # Общее количество пользователей
+        async with conn.execute("SELECT COUNT(*) FROM users") as cur:
+            total = (await cur.fetchone())[0]
+        
+        # Активные пользователи
+        async with conn.execute("SELECT COUNT(*) FROM users WHERE is_active = 1") as cur:
+            active = (await cur.fetchone())[0]
+        
+        # Кто прошёл каждый этап
+        stages = {
+            "welcome": "Приветствие",
+            "leadmagnet": "Лид-магнит",
+            "offer": "Оффер",
+            "dozhim1": "Дожим 1",
+            "dozhim2": "Дожим 2",
+            "dozhim3": "Дожим 3",
+        }
+        
+        stats_text = ""
+        for key, label in stages.items():
+            async with conn.execute(f"SELECT COUNT(*) FROM users WHERE {key}_sent = 1") as cur:
+                count = (await cur.fetchone())[0]
+                stats_text += f"• {label}: {count}\n"
+        
+        # Кто неактивен (заблокировали бота)
+        async with conn.execute("SELECT COUNT(*) FROM users WHERE is_active = 0") as cur:
+            blocked = (await cur.fetchone())[0]
+    
     await message.answer(
-        "📊 <b>Статистика воронки</b>\n\n"
-        f"Всего пользователей: {total}\n"
-        f"Активных (не заблокировали бота): {active}\n\n"
-        f"Кружок отправлен: {welcome}\n"
-        f"Лид-магнит отправлен: {lead}\n"
-        f"Оффер отправлен: {offer}\n"
-        f"Дожим 1 отправлен: {d1}\n"
-        f"Дожим 2 отправлен: {d2}\n"
-        f"Дожим 3 отправлен: {d3}\n",
-        parse_mode="HTML",
+        f"📊 <b>Статистика бота</b>\n\n"
+        f"👥 <b>Всего пользователей:</b> {total}\n"
+        f"🟢 <b>Активных:</b> {active}\n"
+        f"🔴 <b>Заблокировали бота:</b> {blocked}\n\n"
+        f"<b>📈 Прохождение воронки:</b>\n"
+        f"{stats_text}\n"
+        f"<i>Обновлено: {datetime.now().strftime('%d.%m.%Y %H:%M')}</i>",
+        parse_mode="HTML"
     )
+
+
+# ==================== /START С УВЕДОМЛЕНИЕМ ====================
+
+@router.message(CommandStart())
+async def cmd_start(message: Message, bot: Bot) -> None:
+    user = message.from_user
+    
+    existing = await db.get_user(user.id)
+    
+    if existing:
+        await db.reset_user_progress(user.id)
+        logger.info(f"Сброшен прогресс для пользователя {user.id}")
+        status = "🔄 Вернулся"
+    else:
+        await db.create_user_if_not_exists(user.id, user.username, user.full_name)
+        status = "✅ Новый пользователь!"
+    
+    # --- УВЕДОМЛЕНИЕ АДМИНУ С КНОПКОЙ ---
+    for admin_id in ADMIN_IDS:
+        try:
+            username = f"@{user.username}" if user.username else user.full_name
+            
+            # Кнопка для открытия чата с пользователем
+            kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="💬 Написать пользователю",
+                        url=f"tg://user?id={user.id}"
+                    )]
+                ]
+            )
+            
+            await bot.send_message(
+                chat_id=admin_id,
+                text=(
+                    f"🔔 <b>{status}</b>\n\n"
+                    f"👤 {username}\n"
+                    f"🆔 <code>{user.id}</code>\n"
+                    f"📅 {message.date.strftime('%d.%m.%Y %H:%M:%S')}"
+                ),
+                parse_mode="HTML",
+                reply_markup=kb
+            )
+        except Exception as e:
+            logger.error(f"Ошибка отправки уведомления: {e}")
+    
+    # --- ПРИВЕТСТВИЕ ПОЛЬЗОВАТЕЛЮ ---
+    await message.answer_photo(
+        photo=WELCOME_PHOTO_ID,
+        caption=msg.WELCOME_TEXT,
+        parse_mode="HTML"
+    )
+    
+    await db.mark_stage_sent(user.id, "welcome")
